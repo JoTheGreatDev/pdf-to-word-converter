@@ -1,0 +1,71 @@
+<!doctype html>
+<!--
+  Background conversion runner.
+  input: A PDF blob URL (`src`) and output name (`name`) in its query string.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Converter Runner</title>
+  </head>
+  <body>
+    <script type="module">
+      if (!globalThis.process || typeof globalThis.process !== "object") {
+        globalThis.process = {};
+      }
+      try {
+        globalThis.process.browser = true;
+        globalThis.process.type = "renderer";
+      } catch (_error) {}
+
+      const PDF2DOCX_WASM_BASE = new URL("./pdf2docx-wasm/", import.meta.url)
+        .href;
+
+      let converterPromise = null;
+
+      function getConverter() {
+        if (converterPromise) return converterPromise;
+
+        converterPromise = import(`${PDF2DOCX_WASM_BASE}index.js`).then(
+          (mod) => new mod.Pdf2Docx(PDF2DOCX_WASM_BASE),
+        );
+
+        return converterPromise;
+      }
+
+      function publishResult(blobUrl, outputFileName) {
+        //placing the result details in this pages hash as an output.
+        const resultLocation = new URL(window.location.href);
+        resultLocation.hash = new URLSearchParams({
+          result: blobUrl,
+          filename: outputFileName,
+        }).toString();
+        window.location.hash = resultLocation.hash;
+      }
+
+      async function run() {
+        // Read the input, convert it locally, and publish it.
+        const params = new URLSearchParams(window.location.search);
+        const src = params.get("src") || "";
+        const outputFileName = params.get("name") || "converted.doc";
+        if (!src) {
+          throw new Error("Missing source blob URL.");
+        }
+
+        const response = await fetch(src);
+        if (!response.ok) {
+          throw new Error(`Failed to read source blob: ${response.status}`);
+        }
+
+        const pdfBlob = await response.blob();
+        const converter = await getConverter();
+        const docxBlob = await converter.convert(pdfBlob);
+
+        const outputBlobUrl = URL.createObjectURL(docxBlob);
+        publishResult(outputBlobUrl, outputFileName);
+      }
+
+      run().catch(() => {});
+    </script>
+  </body>
+</html>

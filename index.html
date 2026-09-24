@@ -1,0 +1,446 @@
+<!doctype html>
+<!--
+  Main application page. It lets a user select a PDF, choose an optional
+  download name, and coordinates the browser conversion workflow.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PDF to WORD Converter</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 32px 16px;
+        font-family: "Space Grotesk", system-ui, sans-serif;
+        background: linear-gradient(
+          135deg,
+          #eef2ff 0%,
+          #f5f3ff 50%,
+          #eff6ff 100%
+        );
+      }
+
+      main {
+        width: 100%;
+        max-width: 400px;
+        background: #ffffff;
+        border-radius: 24px;
+        box-shadow: 0 20px 40px -10px rgba(79, 70, 229, 0.15);
+        border: 1px solid #eef0ff;
+        padding: 32px;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 28px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 26px;
+        font-weight: 700;
+        color: #111827;
+        letter-spacing: -0.02em;
+      }
+
+      .subtitle {
+        margin: 8px 0 0;
+        font-size: 14px;
+        color: #6b7280;
+      }
+
+      .drop-zone {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 160px;
+        border: 1px solid #e5e7eb;
+        border-radius: 16px;
+        background: #f9fafb;
+        cursor: pointer;
+        transition:
+          background 0.2s ease,
+          border-color 0.2s ease;
+        text-align: center;
+        padding: 16px;
+      }
+
+      .drop-zone:hover {
+        background: #f3f4ff;
+        border-color: #6366f1;
+      }
+
+      .drop-zone svg {
+        width: 24px;
+        height: 24px;
+        color: #6366f1;
+      }
+
+      .upload-icon-bg {
+        background: #ffffff;
+        border-radius: 50%;
+        padding: 10px;
+        margin-bottom: 10px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      }
+
+      .drop-text {
+        font-size: 14px;
+        color: #374151;
+        margin: 0;
+      }
+
+      .drop-text span {
+        font-weight: 600;
+        color: #4f46e5;
+      }
+
+      #file-name-display {
+        margin-top: 10px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #3730a3;
+        background: #e0e7ff;
+        padding: 6px 12px;
+        border-radius: 8px;
+        max-width: 260px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: none;
+      }
+
+      input[type="file"] {
+        display: none;
+      }
+
+      .output-name-field {
+        width: 100%;
+        margin-top: 16px;
+      }
+
+      .output-name-field label {
+        display: block;
+        margin-bottom: 6px;
+        color: #374151;
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .output-name-field input {
+        width: 100%;
+        padding: 11px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 10px;
+        color: #111827;
+        font: inherit;
+      }
+
+      .output-name-field input:focus {
+        outline: none;
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px #e0e7ff;
+      }
+
+      button,
+      a.download-btn {
+        width: 100%;
+        padding: 14px;
+        border: none;
+        border-radius: 12px;
+        font-family: inherit;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition:
+          transform 0.15s ease,
+          background 0.2s ease;
+        margin-top: 20px;
+      }
+
+      #convert-button {
+        background: #111827;
+        color: #fff;
+      }
+
+      #convert-button:hover {
+        background: #4f46e5;
+        transform: translateY(-1px);
+      }
+
+      #status {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 20px;
+        text-align: center;
+        font-size: 14px;
+        font-weight: 500;
+        color: #4f46e5;
+        margin-top: 14px;
+      }
+
+      .spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid #e0e7ff;
+        border-top-color: #4f46e5;
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+        display: none;
+      }
+
+      .spinner.active {
+        display: inline-block;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      a.download-btn {
+        display: none;
+        text-decoration: none;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        background: #10b981;
+        color: #fff;
+      }
+
+      a.download-btn:hover {
+        background: #059669;
+        transform: translateY(-1px);
+      }
+
+      a.download-btn svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      .legal-notice {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        max-width: 260px;
+        margin: 0;
+        padding: 8px 10px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: 0 4px 12px rgba(17, 24, 39, 0.08);
+        color: #6b7280;
+        font-size: 10px;
+        line-height: 1.5;
+        text-align: center;
+        z-index: 1;
+      }
+
+      .legal-notice a {
+        color: #4f46e5;
+      }
+    </style>
+  </head>
+
+  <body>
+    <main>
+      <div class="header">
+        <h1>PDF to WORD</h1>
+        <p class="subtitle">Convert your documents instantly.</p>
+      </div>
+
+      <label for="file-input" class="drop-zone">
+        <div class="upload-icon-bg">
+          <svg
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 4v12m0-12l-4 4m4-4l4 4M5 17v2a2 2 0 002 2h10a2 2 0 002-2v-2"
+            ></path>
+          </svg>
+        </div>
+        <p class="drop-text"><span>Click to upload</span> or drag and drop</p>
+        <p id="file-name-display"></p>
+        <input id="file-input" type="file" accept=".pdf,application/pdf" />
+      </label>
+
+      <div class="output-name-field">
+        <label for="output-file-name">Output file name (optional)</label>
+        <input
+          id="output-file-name"
+          type="text"
+          placeholder="My converted document.doc"
+        />
+      </div>
+
+      <button id="convert-button">Convert Document</button>
+
+      <p id="status">
+        <span id="spinner" class="spinner"></span>
+        <span id="status-text"></span>
+      </p>
+
+      <a id="download" class="download-btn">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="2"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
+          />
+        </svg>
+        <span id="download-label">Download converted file</span>
+      </a>
+
+      <footer class="legal-notice">
+        Copyright (C) 2026 JoTheGreatDev. This program is free software: you may
+        redistribute it under the
+        <a href="https://www.gnu.org/licenses/agpl-3.0.html"
+          >GNU Affero General Public License v3</a
+        >. It is provided without warranty.
+        <a
+          href="https://github.com/JoTheGreatDev/pdf-to-word-converter"
+          target="_blank"
+          rel="noopener noreferrer"
+          >Source code</a
+        >
+      </footer>
+    </main>
+
+    <script>
+      // This page passes the selected PDF to convert.html in a hidden iframe,
+      // then receives the converted blob URL back through the iframe hash.
+      const fileInput = document.getElementById("file-input");
+      const fileNameDisplay = document.getElementById("file-name-display");
+      const outputFileNameInput = document.getElementById("output-file-name");
+
+      fileInput.addEventListener("change", (e) => {
+        if (e.target.files.length > 0) {
+          fileNameDisplay.textContent = e.target.files[0].name;
+          fileNameDisplay.style.display = "block";
+        } else {
+          fileNameDisplay.style.display = "none";
+        }
+      });
+
+      const convertButton = document.getElementById("convert-button");
+      const status = document.getElementById("status");
+      const statusText = document.getElementById("status-text");
+      const spinner = document.getElementById("spinner");
+      const downloadLink = document.getElementById("download");
+      const downloadLabel = document.getElementById("download-label");
+
+      function setStatus(text, loading) {
+        statusText.textContent = text;
+        spinner.classList.toggle("active", !!loading);
+      }
+
+      convertButton.addEventListener("click", () => {
+        const file = fileInput.files[0];
+
+        if (!file) {
+          setStatus("Please select a PDF file.", false);
+          return;
+        }
+
+        setStatus("Converting...", true);
+        downloadLink.style.display = "none";
+
+        const inputBlobUrl = URL.createObjectURL(file);
+
+        const outputFileName =
+          outputFileNameInput.value.trim() ||
+          file.name.replace(/\.pdf$/i, "") + ".doc";
+
+        // `name` carries either the user-supplied output name or the default.
+        const runnerUrl = new URL("/convert.html", window.location.origin);
+
+        runnerUrl.searchParams.set("src", inputBlobUrl);
+        runnerUrl.searchParams.set("name", outputFileName);
+
+        const iframe = document.createElement("iframe");
+        iframe.hidden = true;
+
+        document.body.appendChild(iframe);
+
+        iframe.addEventListener("load", () => {
+          const runnerWindow = iframe.contentWindow;
+
+          async function checkResult() {
+            const params = new URLSearchParams(
+              runnerWindow.location.hash.slice(1),
+            );
+
+            const resultUrl = params.get("result");
+            const filename = params.get("filename");
+
+            if (!resultUrl) {
+              return;
+            }
+
+            try {
+              setStatus("Reading converted file...", true);
+
+              const response = await fetch(resultUrl);
+
+              if (!response.ok) {
+                throw new Error(`Failed to read result: ${response.status}`);
+              }
+
+              const resultBlob = await response.blob();
+              const downloadUrl = URL.createObjectURL(resultBlob);
+
+              downloadLink.href = downloadUrl;
+              downloadLink.download = filename || outputFileName;
+              downloadLabel.textContent = `Download ${filename || outputFileName}`;
+              downloadLink.style.display = "inline-flex";
+
+              setStatus("Conversion complete.", false);
+
+              URL.revokeObjectURL(inputBlobUrl);
+              iframe.remove();
+            } catch (error) {
+              console.error(error);
+              setStatus("Failed to read converted file.", false);
+            }
+          }
+
+          runnerWindow.addEventListener("hashchange", checkResult);
+
+          checkResult();
+        });
+
+        iframe.src = runnerUrl.toString();
+      });
+    </script>
+  </body>
+</html>
